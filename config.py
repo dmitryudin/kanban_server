@@ -6,4 +6,4 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(basedir, 'app.db')
 SQLALCHEMY_MIGRATE_REPO = os.path.join(basedir, 'db_repository')
-MEDIA_SERVER_ADDRESS = 'http://192.168.0.2:51'
+MEDIA_SERVER_ADDRESS = 'http://thefir.ddns.net'
