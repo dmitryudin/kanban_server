@@ -11,8 +11,7 @@ from app import app
 
 class Auth(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    phone = db.Column(db.String(120))
-    email = db.Column(db.String(120))
+    login = db.Column(db.String(120))
     role = db.Column(db.String(120))
     realid = db.Column(db.Integer)
     passwordHash = db.Column(db.String(120))

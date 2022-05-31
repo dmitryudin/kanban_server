@@ -3,9 +3,10 @@ from flask import send_from_directory
 from flask import render_template
 from app import app
 
-FLUTTER_WEB_APP = '/root/coffeServer/app/web'
+FLUTTER_WEB_APP = '/root/kanban/app/web'
 
-@app.route('/web/')
+
+@app.route('/')
 def render_page_web():
     return render_template('index.html')
 

@@ -14,19 +14,19 @@ from flask_jwt_extended import (
 )
 
 
-@cross_origin()
 @app.route('/registration', methods=['GET', 'POST'])
+@cross_origin()
 def clientRegistration():
     d = json.loads(request.get_data().decode('utf-8'))
-    if (model.Auth.query.filter_by(phone=d['login']).first() != None):
-        return jsonify({"status": "phone exist"})
-    if (model.Auth.query.filter_by(email=d['login']).first() != None):
-        return jsonify({"status": "email exist"})
+    print(d['login'])
+    print(model.Auth.query.filter_by(login=d['login']).first())
+    if (model.Auth.query.filter_by(login=d['login']).first() != None):
+        return jsonify({"status": "user exist"}), 409
     auth = model.Auth()
-    auth.phone = d['login']
+    auth.login = d['login']
     hash = security.generatePasswordHash(d['password'])
     auth.passwordHash = hash
-    auth.role = 'client'
+    auth.role = d['role']
     userObj = model.Client()
     userObj.passwordHash = hash
     db.session.add(userObj)
@@ -36,34 +36,43 @@ def clientRegistration():
     print(userObj.id)
     db.session.add(auth)
     db.session.commit()
-    return jsonify({"status": "ok"})
+    return jsonify({"status": "ok"}), 201
 
 
-@cross_origin()
 @app.route('/auth', methods=['GET', 'POST'])
+@cross_origin()
 def auth():
-    d = json.loads(request.get_data().decode('utf-8'))
-    phone = model.Auth.query.filter_by(phone=d['login']).first()
-    email = model.Auth.query.filter_by(email=d['login']).first()
-    entity = None
-    if phone != None:
-        entity = phone
-    if email != None:
-        entity = email
-    if entity == None:
-        return jsonify({"status": "None"})
-    if entity != None:
-        if security.checkPasswordHash(d['password'], entity.passwordHash):
-            access_token = create_access_token(identity=entity.id, fresh=True)
-            refresh_token = create_refresh_token(entity.id)
+    print('Auth!', request.authorization.username)
+    print('Auth!', request.authorization.password)
+    auth = model.Auth.query.filter_by(
+        login=request.authorization.username).first()
+    if auth == None:
+        return {'status': 'user is not exist'}, 404
+    if auth != None:
+        if security.checkPasswordHash(request.authorization.password, auth.passwordHash):
+            access_token = create_access_token(identity=auth.id, fresh=True)
+            refresh_token = create_refresh_token(auth.id)
             return {
+                'lifetime': app.config['TOKENS_LIFETIME'],
                 'access_token': access_token,
                 'refresh_token': refresh_token
             }, 200
 
 
+@app.route('/refresh', methods=['GET', 'POST'])
+@jwt_required(refresh=True)
 @cross_origin()
+def refreshAccessToken():
+    # retrive the user's identity from the refresh token using a Flask-JWT-Extended built-in method
+    print('sdfsdf')
+    current_user = get_jwt_identity()
+    # return a non-fresh token for the user
+    new_token = create_access_token(identity=current_user, fresh=False)
+    return {'access_token': new_token}, 200
+
+
 @app.route('/update', methods=['GET', 'POST'])
+# @cross_origin()
 @jwt_required()
 def update():
     d = json.loads(request.get_data().decode('utf-8'))
@@ -109,12 +118,16 @@ def update():
     return jsonify({"status": "ok"})
 
 
-@cross_origin()
 @app.route('/get_data', methods=['GET', 'POST'])
-@jwt_required()
+# @cross_origin()
+@jwt_required(fresh=True)
 def get_data():
+
     userId = model.Auth.query.get(get_jwt_identity()).realid
     client = model.Client.query.get(userId)
+    print('userId', userId)
     print('json')
     print(client.toDict())
     return jsonify(client.toDict())
+
+    return {}
